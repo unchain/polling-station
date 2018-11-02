@@ -17,20 +17,23 @@
 
         .demo-card-wide>.mdl-card__title {
             color: #fff;
-            /* height: 176px; */
-            /* background: url('../assets/demos/welcome_card.jpg') center / cover; */
             background-color: rgb(2, 91, 123);
         }
 
         .demo-card-wide>.mdl-card__menu {
             color: #fff;
         }
+
+        #failmsgField {
+            color: red;
+        }
+
     </style>
 </head>
 
 <body>
     <script>
-
+        let facebook_id = 0;
 
         window.fbAsyncInit = function () {
             FB.init({
@@ -40,21 +43,7 @@
                 version: 'v3.2'
             });
 
-
-            FB.getLoginStatus(function (response) {
-                if (response.status == "connected") {
-                    FB.api('/me', function (response) {
-                        console.log('Good to see you, ' + response.name + '.');
-                        document.getElementById('voteBtn').disabled = false;
-                        document.getElementById('voteBtn').disabled = false;
-                        document.querySelector('.fb-login-button').hidden = true;
-                        document.querySelector('.youre-in').innerHTML = `You're logged in as ${response.name}`;
-                    });
-                } else {
-                    console.log("you're not connected")
-                    console.log(response);
-                }
-            });
+            fbGetLoginStatus();
 
             FB.AppEvents.logPageView();
         };
@@ -67,6 +56,76 @@
             fjs.parentNode.insertBefore(js, fjs);
         }(document, 'script', 'facebook-jssdk'));
 
+        function fbGetLoginStatus() {
+            FB.getLoginStatus(function (response) {
+                if (response.status == "connected") {
+                    FB.api('/me', function (response) {
+                        console.log('Good to see you, ' + response.name + '.');
+                        document.getElementById('voteBtn').disabled = false;
+                        document.querySelector('.fb-login-button').hidden = true;
+                        document.querySelector('.youre-in').innerHTML = `You're logged in as ${response.name}`;
+                        facebook_id = response.id;
+                    });
+                } else {
+                    console.log("you're not connected")
+                    console.log(response);
+                }
+            });
+        }
+
+        function fbLogout() {
+            FB.logout(function (response) {
+                console.log("you are now logged out");
+            });
+        }
+
+        function submitVote() {
+            const selectedOption = document.querySelector('input[name="options"]:checked').value;
+            console.log(`option ${selectedOption} was selected`);
+
+            const uri = new URL("vote", window.location).href
+            console.log(uri);
+
+            const requestOptions = {
+                method: "POST",
+                body: JSON.stringify({
+                    "name": "Thatcher Peskens",
+                    "fb_id": facebook_id,
+                    "option": selectedOption
+                }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": "Bearer 248dd60d-63d8-400e-abbc-f75906a909dd"
+                }
+            };
+
+            fetch(uri, requestOptions)
+                .then(response => response.json())
+                .catch((response) => {
+                    console.log("failed to get response")
+                })
+                .then((json) => {
+                    console.log(json);
+                    if (json.result == "success") {
+                        document.querySelector("#thankyou").display = "visible";
+                        document.querySelector("#voteForm").style.display = "none";
+                    } else {
+                        document.querySelector("#failmsgField").innerHTML = json.message;
+                    }
+                })
+        }
+
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+        }
+
+        function cheat() {
+            facebook_id = getRandomInt(0, 10000000000);
+            return ("ok, cheating enabled");
+        }
 
     </script>
 
@@ -81,37 +140,45 @@
                 You are invited to enter your opinion on which time to switch to.</p>
             <p>In order to prevent double-voting we will verify your identity though Facebook login.</p>
             <p>So, in order to vote you'll need to sign in first.</p>
+            <div id="fb-root"></div>
             <div class="fb-login-button" data-max-rows="1" data-size="large" data-button-type="login_with"
-                data-show-faces="false" data-auto-logout-link="false" data-use-continue-as="false"></div>
+                data-show-faces="false" data-auto-logout-link="false" data-use-continue-as="false" data-onlogin="fbGetLoginStatus"></div>
             <em class="youre-in"></em>
 
         </div>
         <div class="mdl-card__actions mdl-card--border">
-            <ul style="list-style-type:none">
-                <li>
-                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-1">
-                        <input type="radio" id="option-1" class="mdl-radio__button" name="options" value="0" checked>
-                        <span class="mdl-radio__label">Always Summertime</span>
-                    </label>
-                </li>
-                <li>
-                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-2">
-                        <input type="radio" id="option-2" class="mdl-radio__button" name="options" value="1">
-                        <span class="mdl-radio__label">Always Wintertime</span>
-                    </label>
-                </li>
-                <li>
-                    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-3">
-                        <input type="radio" id="option-3" class="mdl-radio__button" name="options" value="2">
-                        <span class="mdl-radio__label">Keep Summertime and Wintertime different</span>
-                    </label>
-                </li>
-            </ul>
+            <form onsubmit="submitVote();return false" id="voteForm">
+                <ul style="list-style-type:none">
+                    <li>
+                        <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-1">
+                            <input type="radio" id="option-1" class="mdl-radio__button" name="options" value="0"
+                                checked>
+                            <span class="mdl-radio__label">Always Summertime</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-2">
+                            <input type="radio" id="option-2" class="mdl-radio__button" name="options" value="1">
+                            <span class="mdl-radio__label">Always Wintertime</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-3">
+                            <input type="radio" id="option-3" class="mdl-radio__button" name="options" value="2">
+                            <span class="mdl-radio__label">Keep Summertime and Wintertime different</span>
+                        </label>
+                    </li>
+                </ul>
 
-            <!-- Accent-colored raised button with ripple -->
-            <button id="voteBtn" disabled class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
-                Submit vote
-            </button>
+                <!-- Accent-colored raised button with ripple -->
+                <button id="voteBtn" disabled class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+                    Submit vote
+                </button>
+            </form>
+            <div id="thankyou" style="display: none">
+                <h3>Thank you for voting!</h3>
+            </div>
+            <em id="failmsgField"></em>
 
         </div>
         <div class="mdl-card__menu">
