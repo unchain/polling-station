@@ -1,6 +1,6 @@
 
 pragma solidity ^0.4.24;
-contract TimeVote {
+contract PollingStation {
 
     uint40 internal Summer;
     uint40 internal Winter;
